@@ -15,11 +15,42 @@ export class BoardComponent implements OnInit {
   width: number;
   private _selectedPieceX: number = null;
   private _selectedPieceY: number = null;
+  private color: number;
+
+  private _ws: WebSocket = null;
 
   constructor() {
     this.board = null;
     this.width = 900;
     this.availableMoves = [];
+    this.color = -1;
+    this.initSocket();
+  }
+
+  initSocket() {
+    let _self = this;
+    this._ws = new WebSocket('wss://laser-chess-server.herokuapp.com');
+    this._ws.onmessage = function(event) {
+      let data = event.data.split(';');
+      switch (data[0]) {
+        case 'c':
+          _self.color = Number(data[1]);
+          alert(_self.color === 0 ? 'Blue' : 'Red');
+          _self.changeBoard('Ace');
+          break;
+        case 'm':
+          _self.board.movePiece(Number(data[1]), Number(data[2]), Number(data[3]), Number(data[4]));
+          _self.shootLaser(_self.board.getLaserPath());
+          _self.board.endTurn();
+          break;
+        case 'r':
+          _self.board.rotatePiece(Number(data[1]), Number(data[2]), Number(data[3]));
+          _self.hideAvailableMoves();
+          _self.shootLaser(_self.board.getLaserPath());
+          _self.board.endTurn();
+          break;
+      }
+    };
   }
 
   ngOnInit(): void {
@@ -44,7 +75,7 @@ export class BoardComponent implements OnInit {
       });
   }
 
-  private hideAvailableMoves() {
+  private hideAvailableMoves(): void {
     this.availableMoves = (new Array(this.board.height)).fill([], 0, this.board.height);
     for (const i in this.availableMoves) {
       this.availableMoves[i] = (new Array(this.board.width)).fill(false, 0, this.board.width);
@@ -55,34 +86,40 @@ export class BoardComponent implements OnInit {
     }
   }
 
-  private hideLaserPath() {
+  private hideLaserPath(): void {
     this.laserPath = (new Array(this.board.height)).fill([], 0, this.board.height);
     for (const i in this.laserPath) {
       this.laserPath[i] = (new Array(this.board.width)).fill(null, 0, this.board.width);
     }
   }
 
-  handleRotate(direction: number) {
+  handleRotate(direction: number): void {
+    this._ws.send('r;' + [this._selectedPieceX, this._selectedPieceY, direction].join(';'));
     this.board.rotatePiece(this._selectedPieceX, this._selectedPieceY, direction);
     this.hideAvailableMoves();
     this.shootLaser(this.board.getLaserPath());
     this.board.endTurn();
   }
 
-  shootLaser(path: { string: number }[], move: number = 0) {
+  shootLaser(path: { string: number }[], move: number = 0): void {
     if (path[move] !== undefined) {
       this.laserPath[path[move]['y']][path[move]['x']] = path[move]['direction'];
       move++;
-      setTimeout(() => {this.shootLaser(path, move)}, 200);
+      setTimeout(() => {
+        this.shootLaser(path, move);
+      }, 200);
     } else {
       this.hideLaserPath();
       this.board.removeDestroyedPiece();
     }
   }
 
-  handleClick(_x: string, _y: string) {
+  handleClick(_x: string, _y: string): void {
     const x = Number(_x);
     const y = Number(_y);
+    if (this.color !== this.board.turn) {
+      return;
+    }
     if (
       this._selectedPieceX === null &&
       this._selectedPieceY === null &&
@@ -130,6 +167,7 @@ export class BoardComponent implements OnInit {
       this._selectedPieceY !== null
     ) {
       if (this.availableMoves[y][x]) {
+        this._ws.send('m;' + [this._selectedPieceX, this._selectedPieceY, x, y].join(';'));
         this.board.movePiece(this._selectedPieceX, this._selectedPieceY, x, y);
         this.shootLaser(this.board.getLaserPath());
         this.board.endTurn();
