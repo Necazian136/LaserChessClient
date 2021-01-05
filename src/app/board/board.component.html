@@ -1,0 +1,35 @@
+<div class="container">
+  <div class="map-selector">
+    <button (click)="changeBoard('Ace')">Ace</button>
+  </div>
+  <div class="board" [ngStyle]="{'width': width + 'px'}">
+    <div class="row" *ngFor="let row of board.map | keyvalue">
+      <div class="piece" *ngFor="let piece of row.value | keyvalue" [ngStyle]="{
+          'width': width / board.width + 'px',
+          'height': (width * board.height / board.width) / board.height + 'px'
+        }" (click)="handleClick(piece.key, row.key)">
+        <img class="tile-image" src="assets/sprite/tile/default/0.png" alt="tile">
+        <img class="tile-image" src="assets/sprite/tile/token/{{board.tokenMap[+row.key][+piece.key]}}.png" alt="tile"
+             *ngIf="board.tokenMap[+row.key][+piece.key] !== null">
+        <app-piece class="tile-image" [piece]="piece.value" *ngIf="piece.value"></app-piece>
+        <img class="tile-image available-move" src="assets/sprite/moves/available_move.png" alt="available move"
+             *ngIf="availableMoves[+row.key][+piece.key]">
+        <div class="tile-image" *ngIf="availableRotation[+row.key][+piece.key]">
+          <img (click)="handleRotate(1)" class="available-rotation" src="assets/sprite/moves/rotate_right.png"
+               alt="rotate right">
+          <img (click)="handleRotate(-1)" class="available-rotation" src="assets/sprite/moves/rotate_left.png"
+               alt="rotate left">
+        </div>
+        <img class="tile-image" src="assets/sprite/beam/{{(board.turn + 1) % 2}}.png" alt="beam"
+             *ngIf="laserPath[+row.key][+piece.key] !== null"
+             [style]="{
+    '-webkit-transform': 'rotate(' + 90 * laserPath[+row.key][+piece.key] + 'deg)',
+    '-moz-transform': 'rotate(' + 90 * laserPath[+row.key][+piece.key] + 'deg)',
+    '-o-transform': 'rotate(' + 90 * laserPath[+row.key][+piece.key] + 'deg)',
+    '-ms-transform': 'rotate(' + 90 * laserPath[+row.key][+piece.key] + 'deg)',
+    'transform': 'rotate(' + 90 * laserPath[+row.key][+piece.key] + 'deg)'
+}">
+      </div>
+    </div>
+  </div>
+</div>
