@@ -51,7 +51,7 @@ export class PieceFactory {
           [false, false, false, false],
           [false, false, false, false],
           true,
-          true,
+          false,
           false,
           false,
           'assets/sprite/king/',
